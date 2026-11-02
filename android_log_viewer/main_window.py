@@ -1526,6 +1526,10 @@ class MainWindow(QMainWindow):
             lambda t=rec.tag: self._tag_edit.setEditText(re_escape_tag(t)),
         )
         menu.addAction(
+            f"Filter by PID: {rec.pid}",
+            lambda p=rec.pid: self._filter_by_pid(p),
+        )
+        menu.addAction(
             "Exclude this tag",
             lambda t=rec.tag: self._tag_edit.setEditText(f"^((?!{re_escape_tag(t)}).)*$"),
         )
@@ -1534,6 +1538,14 @@ class MainWindow(QMainWindow):
             lambda t=rec.tag: self._add_exclude_rule_from_tag(t),
         )
         menu.exec(self._table.viewport().mapToGlobal(pos))
+
+    def _filter_by_pid(self, pid: str) -> None:
+        """Restrict the main list to a single PID (works for PIDs no longer running)."""
+        tags = self._stats_dialog.active_tags if self._stats_dialog else set()
+        if self._stats_dialog:
+            self._stats_dialog._active_pids = {pid}
+            self._stats_dialog._update_status_label()
+        self._on_stats_filter_applied({pid}, set(tags))
 
     def _copy_selected_rows(self) -> None:
         selected_rows = sorted({i.row() for i in self._table.selectedIndexes()})

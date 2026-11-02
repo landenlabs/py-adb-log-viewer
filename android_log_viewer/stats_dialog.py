@@ -149,10 +149,10 @@ class StatsDialog(QDialog):
         frow = QHBoxLayout()
         frow.addWidget(QLabel("Filter:"))
         self._pid_filter = QLineEdit()
-        self._pid_filter.setPlaceholderText("Process Name regex…")
+        self._pid_filter.setPlaceholderText("PID or Process Name regex…")
         self._pid_filter.setClearButtonEnabled(True)
         self._pid_filter.setToolTip(
-            "Show only rows whose Process Name matches.\n"
+            "Show only rows whose PID or Process Name matches.\n"
             "Click 'Refresh Names (adb ps)' first to populate the Process Name column."
         )
         frow.addWidget(self._pid_filter)
@@ -299,14 +299,16 @@ class StatsDialog(QDialog):
     # ================================================================== table filters
 
     def _apply_pid_filter(self) -> None:
-        """Hide PID rows whose Process Name doesn't match the filter regex."""
+        """Hide PID rows whose PID or Process Name doesn't match the filter regex."""
         rx = _compile_rx(self._pid_filter.text().strip())
         visible = 0
         total = self._pid_table.rowCount()
         for row in range(total):
             name_item = self._pid_table.item(row, 4)
             name = name_item.text() if name_item else ""
-            show = rx is None or bool(rx.search(name))
+            pid_item = self._pid_table.item(row, 0)
+            pid = pid_item.text() if pid_item else ""
+            show = rx is None or bool(rx.search(name)) or bool(rx.search(pid))
             self._pid_table.setRowHidden(row, not show)
             if show:
                 visible += 1
