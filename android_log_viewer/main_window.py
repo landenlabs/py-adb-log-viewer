@@ -703,12 +703,14 @@ class MainWindow(QMainWindow):
         btn.setStyleSheet(_SECTION_BUTTON_STYLE)
         # Size to the actual (non-bold) label width.
         fm = QFontMetrics(btn.font())
-        btn.setFixedWidth(fm.horizontalAdvance(f"▾ {label}") + 14)
+        # Level shows a "(n)" checked-count suffix when filtered; reserve room.
+        extra = "(99)" if label == "Level" else ""
+        btn.setFixedWidth(fm.horizontalAdvance(f"▾ {label}{extra}") + 14)
         return btn
 
     def _wire_section_toggle(self, btn: QPushButton, widget: QWidget, label: str) -> None:
         def on_toggle(checked: bool) -> None:
-            btn.setText(f"{'▾' if checked else '▸'} {label}")
+            btn.setText(f"{'▾' if checked else '▸'} {label}{btn.property('count_suffix') or ''}")
             widget.setVisible(checked)
             if checked:
                 # Move focus into the newly opened input for quick typing.
@@ -1056,7 +1058,14 @@ class MainWindow(QMainWindow):
         so collapsed sections still hint that a filter/search is in play.
         Color management lives entirely in _SECTION_BUTTON_STYLE: black when
         collapsed, white-on-blue when expanded, regardless of active state."""
-        all_checked = all(cb.isChecked() for cb in self._level_cbs.values())
+        n_checked = sum(cb.isChecked() for cb in self._level_cbs.values())
+        all_checked = n_checked == len(self._level_cbs)
+        # "Level" -> "Level(3)" when only some levels are checked.
+        self._lvl_toggle.setProperty("count_suffix", "" if all_checked else f"({n_checked})")
+        self._lvl_toggle.setText(
+            f"{'▾' if self._lvl_toggle.isChecked() else '▸'} Level"
+            f"{self._lvl_toggle.property('count_suffix')}"
+        )
         states = (
             (self._lvl_toggle, not all_checked),
             (self._tag_toggle, bool(self._tag_edit.currentText())),

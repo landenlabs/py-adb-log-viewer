@@ -259,12 +259,14 @@ class FilterViewDialog(QDialog):
         btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
         btn.setStyleSheet(_SECTION_BUTTON_STYLE)
         fm = QFontMetrics(btn.font())
-        btn.setFixedWidth(fm.horizontalAdvance(f"▾ {label}") + 14)
+        # Level shows a "(n)" checked-count suffix when filtered; reserve room.
+        extra = "(99)" if label == "Level" else ""
+        btn.setFixedWidth(fm.horizontalAdvance(f"▾ {label}{extra}") + 14)
         return btn
 
     def _wire_section_toggle(self, btn: QPushButton, widget: QWidget, label: str) -> None:
         def on_toggle(checked: bool) -> None:
-            btn.setText(f"{'▾' if checked else '▸'} {label}")
+            btn.setText(f"{'▾' if checked else '▸'} {label}{btn.property('count_suffix') or ''}")
             widget.setVisible(checked)
             if checked:
                 if isinstance(widget, QLineEdit):
@@ -292,7 +294,14 @@ class FilterViewDialog(QDialog):
         cb.setStyleSheet("QCheckBox { " + " ".join(parts) + " }")
 
     def _update_section_indicators(self) -> None:
-        all_checked = all(cb.isChecked() for cb in self._level_cbs.values())
+        n_checked = sum(cb.isChecked() for cb in self._level_cbs.values())
+        all_checked = n_checked == len(self._level_cbs)
+        # "Level" -> "Level(3)" when only some levels are checked.
+        self._lvl_toggle.setProperty("count_suffix", "" if all_checked else f"({n_checked})")
+        self._lvl_toggle.setText(
+            f"{'▾' if self._lvl_toggle.isChecked() else '▸'} Level"
+            f"{self._lvl_toggle.property('count_suffix')}"
+        )
         states = (
             (self._lvl_toggle, not all_checked),
             (self._tag_toggle, bool(self._tag_edit.text())),
